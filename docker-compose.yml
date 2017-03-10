@@ -1,0 +1,60 @@
+version: '2'
+services:
+  consul:
+    image: consul:latest
+    restart: always
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.2
+    ports:
+      - 8300:8300
+      - 8301:8301
+      - 8301:8301/udp
+      - 8302:8302
+      - 8302:8302/udp
+      - 8400:8400
+      - 8500:8500
+      - 8600:8600
+      - 8600:8600/udp
+
+  kong-database:
+    image: postgres:9.4
+    restart: always
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.3
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=kong
+      - POSTGRES_DB=kong
+
+  kong:
+    image: kong:latest
+    depends_on:
+      - consul
+      - kong-database
+    restart: always
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.4
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8443:8443
+      - 8444:8444
+      - 7946:7946
+    environment:
+      - KONG_DATABASE=postgres
+      - KONG_PG_HOST=172.16.238.3
+      - KONG_DNS_RESOLVER=172.16.238.2:8600
+
+networks:
+  app_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.238.0/24
+          gateway: 172.16.238.1
+
